@@ -45,14 +45,14 @@ def userinfo():
     name = data.get('name')
     birth = data.get('birth')
     degree = data.get('degree')
-    city = data.get('city')
+    city = data.get('sex')
     user_id = data.get('id')
     update_data = {
         '$set': {
             'name': name,
             'birth': birth,
             'degree': degree,
-            'city': city,
+            'sex': city,
         }
     }
     users = mongo.db.users
