@@ -1,12 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,session
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 import uuid
+
 
 app = Flask(__name__)
 CORS(app)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/test_app"
 mongo = PyMongo(app)
+
 
 
 @app.route('/login', methods=['POST'])
@@ -20,6 +22,8 @@ def login():
     if user:
         check_password = user['password']
         if check_password == password:
+            session['id'] = user['user_id']
+            print(session['id'])
             return jsonify({'message': True, 'user_id': user['user_id']})
         return jsonify({'message': False})
     else:
@@ -38,7 +42,6 @@ def register():
     print(account, password, user_id)
     return jsonify(user_id)
 
-
 @app.route('/userinfo', methods=['POST'])
 def userinfo():
     data = request.get_json()
@@ -53,14 +56,32 @@ def userinfo():
             'birth': birth,
             'degree': degree,
             'sex': sex,
+            'fans': 0,
+            'follows': 0,
+            'posts': 0,
         }
     }
     users = mongo.db.users
     print(user_id)
     print(name)
+    print(birth)
+    print(data.get('id'))
     result = users.update_one({'user_id': user_id}, update_data)
     return jsonify('success')
 
+@app.route('/Person',methods=['GET'])
+def person():
+    user_id = session.get('id')
+    print(session['id'])
+    if user_id:
+        users = mongo.db.users
+        quire = {'user_id': user_id}
+        user = users.find_one(quire)
+        if user:
+            return jsonify(user)
+    return jsonify({'message': 'User not found'})
+
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.secret_key = 'your_secret_key'
+    app.run(debug=True, host='0.0.0.0', port=5000)
