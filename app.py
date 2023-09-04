@@ -1,14 +1,16 @@
-from flask import Flask, request, jsonify,session
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 import uuid
-
+import jwt
+import datetime
 
 app = Flask(__name__)
-CORS(app)
+CORS(app,origins="http://localhost:*", supports_credentials=True)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/test_app"
-mongo = PyMongo(app)
+SECRET_KEY = "your_secret_key_here"
 
+mongo = PyMongo(app)
 
 
 @app.route('/login', methods=['POST'])
@@ -22,9 +24,10 @@ def login():
     if user:
         check_password = user['password']
         if check_password == password:
-            session['id'] = user['user_id']
-            print(session['id'])
-            return jsonify({'message': True, 'user_id': user['user_id']})
+            # session['id'] = user['user_id']
+            # print(session.get('id'))
+            token = jwt.encode({"user_id": user['user_id'], "exp": datetime.datetime.utcnow() + datetime.timedelta(hours = 1)}, SECRET_KEY, algorithm="HS256", )
+            return jsonify({'message': True, 'user_id': user['user_id'], 'token': token})
         return jsonify({'message': False})
     else:
         return jsonify({'message': False})
@@ -39,8 +42,8 @@ def register():
     user = mongo.db.users
     new_users = {"account": account, 'password': password, 'user_id': user_id}
     user.insert_one(new_users)
-    print(account, password, user_id)
     return jsonify(user_id)
+
 
 @app.route('/userinfo', methods=['POST'])
 def userinfo():
@@ -62,26 +65,25 @@ def userinfo():
         }
     }
     users = mongo.db.users
-    print(user_id)
-    print(name)
-    print(birth)
-    print(data.get('id'))
     result = users.update_one({'user_id': user_id}, update_data)
     return jsonify('success')
 
-@app.route('/Person',methods=['GET'])
+
+@app.route('/Person', methods=['GET'])
 def person():
-    user_id = session.get('id')
-    print(session['id'])
+    # user_id = session.get('id')
+    token = request.headers.get('Authorization').split("Bearer ")[1]
+    data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    user_id = data["user_id"]
+    print('user_id', user_id)
     if user_id:
         users = mongo.db.users
         quire = {'user_id': user_id}
         user = users.find_one(quire)
         if user:
-            return jsonify(user)
+            return jsonify({'fans': user['fans'], 'post': user['posts'], 'follows': user['follows']})
     return jsonify({'message': 'User not found'})
 
 
 if __name__ == '__main__':
-    app.secret_key = 'your_secret_key'
     app.run(debug=True, host='0.0.0.0', port=5000)
