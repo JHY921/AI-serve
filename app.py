@@ -81,7 +81,7 @@ def person():
         quire = {'user_id': user_id}
         user = users.find_one(quire)
         if user:
-            return jsonify({'fans': user['fans'], 'post': user['posts'], 'follows': user['follows']})
+            return jsonify({'name':user['name'],'account':user['account'],'fans': user['fans'], 'post': user['posts'], 'follows': user['follows']})
     return jsonify({'message': 'User not found'})
 
 
