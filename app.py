@@ -1,12 +1,15 @@
+import base64
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 import uuid
 import jwt
 import datetime
+import random
 
 app = Flask(__name__)
-CORS(app,origins="http://localhost:*", supports_credentials=True)
+CORS(app, origins="http://localhost:*", supports_credentials=True)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/test_app"
 SECRET_KEY = "your_secret_key_here"
 
@@ -26,7 +29,9 @@ def login():
         if check_password == password:
             # session['id'] = user['user_id']
             # print(session.get('id'))
-            token = jwt.encode({"user_id": user['user_id'], "exp": datetime.datetime.utcnow() + datetime.timedelta(hours = 1)}, SECRET_KEY, algorithm="HS256", )
+            token = jwt.encode(
+                {"user_id": user['user_id'], "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)},
+                SECRET_KEY, algorithm="HS256", )
             return jsonify({'message': True, 'user_id': user['user_id'], 'token': token})
         return jsonify({'message': False})
     else:
@@ -43,6 +48,14 @@ def register():
     new_users = {"account": account, 'password': password, 'user_id': user_id}
     user.insert_one(new_users)
     return jsonify(user_id)
+
+
+@app.route('/home/process', methods=['GET'])
+def process():
+    a = [random.random() for _ in range(6)]
+    for i in range(24):
+        a.append(-1)
+    return jsonify(a)
 
 
 @app.route('/userinfo', methods=['POST'])
@@ -69,20 +82,53 @@ def userinfo():
     return jsonify('success')
 
 
+@app.route('/forum/post', methods=['POST'])
+def post():
+    try:
+        token = request.headers.get('Authorization').split("Bearer ")[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data["user_id"]
+        print(user_id)
+        post = mongo.db.post
+        date = request.get_json()
+        title = date.get('title')
+        tag = date.get('tag')
+        passage = date.get('passage')
+        img = date.get('img')
+        print(img)
+        image_data = None
+        if img is not None:
+            image_data = base64.b64decode(img)
+        document = {'user_id': user_id, 'title': title, 'tag': tag, 'passage': passage}
+        if image_data:
+            document['img'] = image_data
+        post.insert_one(document)
+        print(tag)
+        return jsonify('success')
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
 @app.route('/Person', methods=['GET'])
 def person():
-    # user_id = session.get('id')
-    token = request.headers.get('Authorization').split("Bearer ")[1]
-    data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    user_id = data["user_id"]
-    print('user_id', user_id)
-    if user_id:
-        users = mongo.db.users
-        quire = {'user_id': user_id}
-        user = users.find_one(quire)
-        if user:
-            return jsonify({'fans': user['fans'], 'post': user['posts'], 'follows': user['follows']})
-    return jsonify({'message': 'User not found'})
+    try:
+        token = request.headers.get('Authorization').split("Bearer ")[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data["user_id"]
+        print('user_id', user_id)
+        if user_id:
+            users = mongo.db.users
+            quire = {'user_id': user_id}
+            user = users.find_one(quire)
+            if user:
+                return jsonify({'fans': user['fans'], 'post': user['posts'], 'follows': user['follows']})
+        return jsonify({'message': 'User not found'})
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 
 if __name__ == '__main__':
