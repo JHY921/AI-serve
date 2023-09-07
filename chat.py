@@ -7,7 +7,9 @@ from aliyunsdkcore.client import AcsClient
 from aliyunsdkcore.request import CommonRequest
 
 from pydub import AudioSegment
-def fileTrans(akId, akSecret, appKey, fileLink) :
+
+
+def fileTrans(akId, akSecret, appKey, fileLink):
     # 地域ID，固定值。
     REGION_ID = "cn-shanghai"
     PRODUCT = "nls-filetrans"
@@ -42,28 +44,28 @@ def fileTrans(akId, akSecret, appKey, fileLink) :
     postRequest.set_method('POST')
     # 新接入请使用4.0版本，已接入（默认2.0）如需维持现状，请注释掉该参数设置。
     # 设置是否输出词信息，默认为false，开启时需要设置version为4.0。
-    task = {KEY_APP_KEY : appKey, KEY_FILE_LINK : fileLink, KEY_VERSION : "4.0", KEY_ENABLE_WORDS : False}
+    task = {KEY_APP_KEY: appKey, KEY_FILE_LINK: fileLink, KEY_VERSION: "4.0", KEY_ENABLE_WORDS: False}
     # 开启智能分轨，如果开启智能分轨，task中设置KEY_AUTO_SPLIT为True。
     # task = {KEY_APP_KEY : appKey, KEY_FILE_LINK : fileLink, KEY_VERSION : "4.0", KEY_ENABLE_WORDS : False, KEY_AUTO_SPLIT : True}
     task = json.dumps(task)
     # print(task)
     postRequest.add_body_params(KEY_TASK, task)
     taskId = ""
-    try :
+    try:
         postResponse = client.do_action_with_exception(postRequest)
         postResponse = json.loads(postResponse)
-        print (postResponse)
+        print(postResponse)
         statusText = postResponse[KEY_STATUS_TEXT]
-        if statusText == STATUS_SUCCESS :
-            print ("录音文件识别请求成功响应！")
+        if statusText == STATUS_SUCCESS:
+            print("录音文件识别请求成功响应！")
             taskId = postResponse[KEY_TASK_ID]
-        else :
-            print ("录音文件识别请求失败！")
+        else:
+            print("录音文件识别请求失败！")
             return
     except ServerException as e:
-        print (e)
+        print(e)
     except ClientException as e:
-        print (e)
+        print(e)
     # 创建CommonRequest，设置任务ID。
     getRequest = CommonRequest()
     getRequest.set_domain(DOMAIN)
@@ -76,41 +78,43 @@ def fileTrans(akId, akSecret, appKey, fileLink) :
     # 以轮询的方式进行识别结果的查询，直到服务端返回的状态描述符为"SUCCESS"、"SUCCESS_WITH_NO_VALID_FRAGMENT"，
     # 或者为错误描述，则结束轮询。
     statusText = ""
-    while True :
-        try :
+    while True:
+        try:
             getResponse = client.do_action_with_exception(getRequest)
             getResponse = json.loads(getResponse)
-            print (getResponse)
+            print(getResponse)
             statusText = getResponse[KEY_STATUS_TEXT]
-            if statusText == STATUS_RUNNING or statusText == STATUS_QUEUEING :
+            if statusText == STATUS_RUNNING or statusText == STATUS_QUEUEING:
                 # 继续轮询
                 time.sleep(10)
-            else :
+            else:
                 # 退出轮询
                 break
         except ServerException as e:
-            print (e)
+            print(e)
         except ClientException as e:
-            print (e)
-    if statusText == STATUS_SUCCESS :
-        texts=""
+            print(e)
+    if statusText == STATUS_SUCCESS:
+        texts = ""
         result = getResponse["Result"]
         sentences = result["Sentences"]
-        maxlength = 5 #按长度分段
-        for i,sentence in enumerate(sentences):
+        maxlength = 5  # 按长度分段
+        for i, sentence in enumerate(sentences):
             index = i % (maxlength + 1)
             if index == maxlength:
-                with open("recognition.txt","a+") as f:
-                    f.write(texts+"\r\n\r\n")
+                with open("recognition.txt", "a+") as f:
+                    f.write(texts + "\r\n\r\n")
                     print(texts)
                 texts = ""
             text = sentence["Text"]
-            texts +=text
+            texts += text
             print(texts)
-        print ("录音文件识别成功！")
-    else :
-        print ("录音文件识别失败！")
+        print("录音文件识别成功！")
+    else:
+        print("录音文件识别失败！")
     return
+
+
 def main():
     accessKeyId = "LTAI5tP5qXtKJcXkaq8keC1F"
     accessKeySecret = "BGGeJGUjIkQnpgKMhPAuxQpoAsPpQp"
@@ -121,6 +125,7 @@ def main():
     # 执行录音文件识别
     # wavSample(fileLink,fileLinks)
     fileTrans(accessKeyId, accessKeySecret, appKey, fileLink)
+
 
 # def wavSample(from_path, to_path, frame_rate=16000, channels=1, startMin=0, endMin=None):
 # 	# 根据文件的类型选择导入方法

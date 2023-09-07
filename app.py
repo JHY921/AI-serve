@@ -16,6 +16,19 @@ SECRET_KEY = "your_secret_key_here"
 mongo = PyMongo(app)
 
 
+@app.route('/image', methods=['GET'])
+def img():
+    userId = '2f3c5b31-0bb9-4c50-a09b-e961baeeccca'
+    post = mongo.db.post
+    img_date = post.find_one({'user_id': userId})
+    print(img_date)
+    if img_date:
+        image = img_date['img']
+        image_base64 = base64.b64encode(image).decode('utf-8')
+        return jsonify({"image": image_base64})
+    return jsonify('none')
+
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -80,6 +93,22 @@ def userinfo():
     users = mongo.db.users
     result = users.update_one({'user_id': user_id}, update_data)
     return jsonify('success')
+
+
+@app.route('/question', methods=['POST'])
+def question():
+    data = request.get_json()
+    question = data.get('qa')
+    userId = data.get('userId')
+    learn = [question['0'], question['1'], question['2'], question['3'], question['4'], question['5']]
+    user = mongo.db.users
+    update_date = {
+        '$set': {
+            'question': learn
+        }
+    }
+    user.update_one({'userId': userId}, update_date)
+    return jsonify('login success')
 
 
 @app.route('/forum/post', methods=['POST'])
