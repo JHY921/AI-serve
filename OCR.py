@@ -41,7 +41,7 @@ def posturl(headers, body):
         print(e.read().decode("utf8"))
 
 
-def request(appcode, img_file, params):
+def reqs(appcode, img_file, params):
     # 请求参数
     if params is None:
         params = {}
@@ -58,14 +58,16 @@ def request(appcode, img_file, params):
     # re = response['ret']
     # print(len(response['ret']))
     for key in range(len(response['ret'])):
-        print(response['ret'][key]['word'],end="")
+        print(response['ret'][key]['word'], end="")
+
+
 # 请求接口
 REQUEST_URL = "https://tysbgpu.market.alicloudapi.com/api/predict/ocr_general"
 
 if __name__ == "__main__":
     # 配置信息
     appcode = "ff523a98c0cc486d9d128271b34b35a9"
-    img_file = "C:\\Users\\lenovo\\Desktop\\R-C.jpg"
+    img_file = "./uploads/ocr.png"
     params = {
         "configure": {
             "min_size": 16,  # 图片中文字的最小高度，单位像素（此参数目前已经废弃）
@@ -76,4 +78,4 @@ if __name__ == "__main__":
         }
     }
 
-    request(appcode, img_file, params)
+    reqs(appcode, img_file, params)

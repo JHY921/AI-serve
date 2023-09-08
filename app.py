@@ -1,4 +1,5 @@
 import base64
+import os
 
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
@@ -7,6 +8,7 @@ import uuid
 import jwt
 import datetime
 import random
+import OCR
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:*", supports_credentials=True)
@@ -14,6 +16,10 @@ app.config["MONGO_URI"] = "mongodb://localhost:27017/test_app"
 SECRET_KEY = "your_secret_key_here"
 
 mongo = PyMongo(app)
+UPLOAD_FOLDER = 'uploads'  # 设置上传文件夹
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 
 @app.route('/image', methods=['GET'])
@@ -109,6 +115,31 @@ def question():
     }
     user.update_one({'userId': userId}, update_date)
     return jsonify('login success')
+
+
+@app.route('/ocr', methods=['POST'])
+def ocr():
+    if 'image' not in request.files:
+        return jsonify({'err': '请上传图片'})
+    file = request.files['image']
+    if file == '':
+        return jsonify({'err': '请选择图片'})
+    if file:
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
+        appcode = "ff523a98c0cc486d9d128271b34b35a9"
+        img_file = './uploads/'+file.filename
+        params = {
+            "configure": {
+                "min_size": 16,  # 图片中文字的最小高度，单位像素（此参数目前已经废弃）
+                "output_prob": True,  # 是否输出文字框的概率
+                "output_keypoints": False,  # 是否输出文字框角点
+                "skip_detection": False,  # 是否跳过文字检测步骤直接进行文字识别
+                "without_predicting_direction": False,  # 是否关闭文字行方向预测
+            }
+        }
+        OCR.reqs(appcode, img_file, params)
+        return jsonify({'message': 'File uploaded successfully'})
 
 
 @app.route('/forum/post', methods=['POST'])
