@@ -100,7 +100,7 @@ def question():
     data = request.get_json()
     question = data.get('qa')
     userId = data.get('userId')
-    learn = [question['0'], question['1'], question['2'], question['3'], question['4'], question['5']]
+    learn = [question['0'], question['1'], question['2'], question['3'], question['4']]
     user = mongo.db.users
     update_date = {
         '$set': {
