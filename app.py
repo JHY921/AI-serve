@@ -76,6 +76,50 @@ def process():
         a.append(-1)
     return jsonify(a)
 
+@app.route('/home/todo',methods=['GET'])
+def todo():
+    try:
+        token = request.headers.get('Authorization').split("Bearer ")[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data["user_id"]
+        print('user_id', user_id)
+        if user_id:
+            users = mongo.db.todo
+            quire = {'user_id': user_id}
+            user = users.find_one(quire)
+            if user:
+                print({'tasks': user['tasks']})
+                return jsonify({'tasks': user['tasks']})
+        return jsonify({'message': 'User not found'})
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/home/todo/add',methods=['POST'])
+def add():
+    try:
+        token = request.headers.get('Authorization').split("Bearer ")[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data["user_id"]
+        print(user_id)
+        todo = mongo.db.todo
+        data1= request.get_json()
+        print(data1)
+        document = {'user_id': user_id, 'tasks':data1}
+        if user_id:
+            users = mongo.db.todo
+            quire = {'user_id': user_id}
+            user = users.find_one(quire)
+            if user:
+                user.update_one({'tasks':data1})
+            else:
+                todo.insert_one(document)
+        return jsonify('success')
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 @app.route('/userinfo', methods=['POST'])
 def userinfo():
