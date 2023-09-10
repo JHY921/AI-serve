@@ -113,19 +113,18 @@ def add():
         data1 = request.get_json()
         print(data1)
         today = datetime.datetime.now()
-        document = {'user_id': user_id, 'tasks': data1, 'year': today.year, 'month': today.month, 'day': today.day}
+        document = {'user_id': user_id, 'tasks': data1['tasks'], 'year': today.year, 'month': today.month, 'day': today.day}
         if user_id:
             users = mongo.db.todo
             quire = {'user_id': user_id}
             user = users.find_one(quire)
             if user:
-                user.update_one({'tasks': data1})
                 update_date = {
                     '$set': {
-                        'tasks': data1
+                        'tasks': data1['tasks']
                     }
                 }
-                user.update_one({'user_id': user_id}, update_date)
+                users.update_one({'user_id': user_id}, update_date)
             else:
                 todo.insert_one(document)
         return jsonify('success')
