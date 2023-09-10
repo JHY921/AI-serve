@@ -119,12 +119,7 @@ def add():
             quire = {'user_id': user_id}
             user = users.find_one(quire)
             if user:
-                update_date = {
-                    '$set': {
-                        'tasks': data1
-                    }
-                }
-                user.update_one({'user_id': user_id}, update_date)
+                user.update_one({'tasks': data1})
             else:
                 todo.insert_one(document)
         return jsonify('success')
