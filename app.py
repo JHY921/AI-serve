@@ -113,10 +113,9 @@ def add():
         data1 = request.get_json()
         print(data1)
         today = datetime.datetime.now()
-        document = {'user_id': user_id, 'tasks': data1['tasks'], 'year': today.year, 'month': today.month, 'day': today.day}
         if user_id:
             users = mongo.db.todo
-            quire = {'user_id': user_id}
+            quire = {'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}
             user = users.find_one(quire)
             if user:
                 update_date = {
@@ -124,14 +123,44 @@ def add():
                         'tasks': data1['tasks']
                     }
                 }
-                users.update_one({'user_id': user_id}, update_date)
+                users.update_one({'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}, update_date)
             else:
+                document = {'user_id': user_id, 'tasks': data1['tasks'], 'year': today.year, 'month': today.month,'day': today.day}
                 todo.insert_one(document)
         return jsonify('success')
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
+@app.route('/home/todo/df', methods=['POST'])
+def delete():
+    try:
+        token = request.headers.get('Authorization').split("Bearer ")[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data["user_id"]
+        print(user_id)
+        todo = mongo.db.todo
+        data1 = request.get_json()
+        print(data1)
+        today = datetime.datetime.now()
+        if user_id:
+            users = mongo.db.todo
+            quire = {'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}
+            user = users.find_one(quire)
+            if user:
+                update_date = {
+                    '$set': {
+                        'tasks': data1['tasks']
+                    }
+                }
+                users.update_one({'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}, update_date)
+        return jsonify('success')
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
 
 
 @app.route('/userinfo', methods=['POST'])
