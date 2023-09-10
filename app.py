@@ -1,6 +1,5 @@
 import base64
 import os
-
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from flask_pymongo import PyMongo
@@ -113,7 +112,8 @@ def add():
         todo = mongo.db.todo
         data1 = request.get_json()
         print(data1)
-        document = {'user_id': user_id, 'tasks': data1}
+        today = datetime.datetime.now()
+        document = {'user_id': user_id, 'tasks': data1, 'year': today.year, 'month': today.month, 'day': today.day}
         if user_id:
             users = mongo.db.todo
             quire = {'user_id': user_id}
