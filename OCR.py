@@ -67,7 +67,9 @@ REQUEST_URL = "https://tysbgpu.market.alicloudapi.com/api/predict/ocr_general"
 if __name__ == "__main__":
     # 配置信息
     appcode = "ff523a98c0cc486d9d128271b34b35a9"
-    img_file = "C:/Users/金科达/Desktop/ocr.png"
+    img_file = "C:\\Users\\江\\Desktop\\微信图片_20230907110115.jpg"
+    img_file = "./uploads/ocr.png"
+
     params = {
         "configure": {
             "min_size": 16,  # 图片中文字的最小高度，单位像素（此参数目前已经废弃）
