@@ -1,7 +1,7 @@
 import base64
 import os
 
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 import uuid
@@ -33,6 +33,11 @@ def img():
         image_base64 = base64.b64encode(image).decode('utf-8')
         return jsonify({"image": image_base64})
     return jsonify('none')
+
+
+@app.route('/video/<filename>', methods=['GET'])
+def video(filename):
+    return send_from_directory('./video', filename)
 
 
 @app.route('/login', methods=['POST'])
@@ -106,7 +111,7 @@ def question():
     data = request.get_json()
     question = data.get('qa')
     userId = data.get('userId')
-    learn = [question['0'], question['1'], question['2'], question['3'], question['4'], question['5']]
+    learn = [question['0'], question['1'], question['2'], question['3'], question['4']]
     user = mongo.db.users
     update_date = {
         '$set': {
@@ -128,7 +133,7 @@ def ocr():
         filepath = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(filepath)
         appcode = "ff523a98c0cc486d9d128271b34b35a9"
-        img_file = './uploads/'+file.filename
+        img_file = './uploads/' + file.filename
         params = {
             "configure": {
                 "min_size": 16,  # 图片中文字的最小高度，单位像素（此参数目前已经废弃）
@@ -159,7 +164,8 @@ def post():
         image_data = None
         if img is not None:
             image_data = base64.b64decode(img)
-        document = {'user_id': user_id, 'title': title, 'tag': tag, 'passage': passage}
+        document = {'user_id': user_id, 'title': title, 'tag': tag, 'passage': passage, 'through': 0,
+                    'like': 0, 'comment': 0, 'star': 0}
         if image_data:
             document['img'] = image_data
         post.insert_one(document)
@@ -169,6 +175,21 @@ def post():
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
+
+@app.route('/forum_heat', methods=['GET'])
+def heat():
+    post = mongo.db.post
+    user = mongo.db.users
+    results = list(post.find().sort('through', -1).limit(10))
+    for result in results:
+        result['_id'] = str(result['_id'])
+        user_id = result['user_id']
+        name = user.find_one({'user_id': user_id})['name']
+        result['name'] = name
+        print(result)
+    # print(results)
+    return jsonify(results)
 
 
 @app.route('/Person', methods=['GET'])
