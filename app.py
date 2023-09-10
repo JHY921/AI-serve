@@ -81,7 +81,67 @@ def process():
         a.append(-1)
     return jsonify(a)
 
-@app.route('/home/todo',methods=['GET'])
+@app.route('/image', methods=['GET'])
+def img():
+    userId = '2f3c5b31-0bb9-4c50-a09b-e961baeeccca'
+    post = mongo.db.post
+    img_date = post.find_one({'user_id': userId})
+    print(img_date)
+    if img_date:
+        image = img_date['img']
+        image_base64 = base64.b64encode(image).decode('utf-8')
+        return jsonify({"image": image_base64})
+    return jsonify('none')
+
+
+@app.route('/video/<filename>', methods=['GET'])
+def video(filename):
+    return send_from_directory('./video', filename)
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    account = data.get('account')
+    password = data.get('password')
+    users = mongo.db.users
+    quire = {'account': account}
+    user = users.find_one(quire)
+    if user:
+        check_password = user['password']
+        if check_password == password:
+            # session['id'] = user['user_id']
+            # print(session.get('id'))
+            token = jwt.encode(
+                {"user_id": user['user_id'], "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)},
+                SECRET_KEY, algorithm="HS256", )
+            return jsonify({'message': True, 'user_id': user['user_id'], 'token': token})
+        return jsonify({'message': False})
+    else:
+        return jsonify({'message': False})
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    account = data.get('tel')
+    password = data.get('password')
+    user_id = str(uuid.uuid4())
+    user = mongo.db.users
+    new_users = {"account": account, 'password': password, 'user_id': user_id}
+    user.insert_one(new_users)
+    return jsonify(user_id)
+
+
+@app.route('/home/process', methods=['GET'])
+def process():
+    a = [random.random() for _ in range(6)]
+    for i in range(24):
+        a.append(-1)
+    return jsonify(a)
+
+
+@app.route('/home/todo', methods=['GET'])
 def todo():
     try:
         token = request.headers.get('Authorization').split("Bearer ")[1]
@@ -101,7 +161,8 @@ def todo():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@app.route('/home/todo/add',methods=['POST'])
+
+@app.route('/home/todo/add', methods=['POST'])
 def add():
     try:
         token = request.headers.get('Authorization').split("Bearer ")[1]
@@ -109,15 +170,20 @@ def add():
         user_id = data["user_id"]
         print(user_id)
         todo = mongo.db.todo
-        data1= request.get_json()
+        data1 = request.get_json()
         print(data1)
-        document = {'user_id': user_id, 'tasks':data1}
+        document = {'user_id': user_id, 'tasks': data1}
         if user_id:
             users = mongo.db.todo
             quire = {'user_id': user_id}
             user = users.find_one(quire)
             if user:
-                user.update_one({'tasks':data1})
+                update_date = {
+                    '$set': {
+                        'tasks': data1
+                    }
+                }
+                user.update_one({'user_id': user_id}, update_date)
             else:
                 todo.insert_one(document)
         return jsonify('success')
@@ -125,6 +191,7 @@ def add():
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
         return jsonify({'message': str(e)}), 500
+
 
 @app.route('/userinfo', methods=['POST'])
 def userinfo():
