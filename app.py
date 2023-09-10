@@ -8,6 +8,7 @@ import jwt
 import datetime
 import random
 import OCR
+from decimal import Decimal
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:*", supports_credentials=True)
@@ -82,15 +83,30 @@ def every_todo():
         print(user_id)
         todos = mongo.db.todo
         today = datetime.datetime.now()
-        results = todos.find({'user_id': user_id, 'year': today.year, 'month': today.month, 'day': {'$lte': today.day}}).sort('day', -1)
+        results = todos.find(
+            {'user_id': user_id, 'year': today.year, 'month': today.month, 'day': {'$lte': today.day}}).sort('day', -1)
         work = []
         if results:
             for result in results:
                 del result['_id']
                 del result['user_id']
                 del result['year']
+                t = result['tasks']
+                time1 = 0
+                time2 = 0
+                already_do = 0
+                for m in t:
+                    time = int(m[3]) * 60 + int(m[4]) - int(m[1]) * 60 + int(m[2])
+                    time2 += time
+                    if m[6]:
+                        time1 += time
+                        already_do += 1
+                result['plan_time'] = float(Decimal(time2/60).quantize(Decimal('0.00')))
+                result['true_time'] = float(Decimal(time1/60).quantize(Decimal('0.00')))
+                result['true_do'] = already_do
+                print(result)
                 work.append(result)
-            print(work)
+            # print(work)
             return jsonify(work)
         else:
             return jsonify(work)
