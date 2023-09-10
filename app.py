@@ -73,6 +73,34 @@ def register():
     return jsonify(user_id)
 
 
+@app.route('/dailytodo', methods=['GET'])
+def every_todo():
+    try:
+        token = request.headers.get('Authorization').split("Bearer ")[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data["user_id"]
+        print(user_id)
+        todos = mongo.db.todo
+        today = datetime.datetime.now()
+        results = todos.find({'user_id': user_id, 'year': today.year, 'month': today.month, 'day': {'$lte': today.day}}).sort('day', -1)
+        work = []
+        if results:
+            for result in results:
+                del result['_id']
+                del result['user_id']
+                del result['year']
+                work.append(result)
+            print(work)
+            return jsonify(work)
+        else:
+            return jsonify(work)
+        return jsonify('success')
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
 @app.route('/home/process', methods=['GET'])
 def process():
     a = [random.random() for _ in range(6)]
@@ -87,14 +115,14 @@ def todo():
         token = request.headers.get('Authorization').split("Bearer ")[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = data["user_id"]
-        print('user_id', user_id)
+        today = datetime.datetime.now()
         if user_id:
             users = mongo.db.todo
-            quire = {'user_id': user_id}
+            quire = {'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day}
             user = users.find_one(quire)
             if user:
-                print({'tasks': user['tasks']})
                 return jsonify({'tasks': user['tasks']})
+            return jsonify({'tasks': []})
         return jsonify({'message': 'User not found'})
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
@@ -108,14 +136,12 @@ def add():
         token = request.headers.get('Authorization').split("Bearer ")[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = data["user_id"]
-        print(user_id)
         todo = mongo.db.todo
         data1 = request.get_json()
-        print(data1)
         today = datetime.datetime.now()
         if user_id:
             users = mongo.db.todo
-            quire = {'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}
+            quire = {'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day}
             user = users.find_one(quire)
             if user:
                 update_date = {
@@ -123,9 +149,11 @@ def add():
                         'tasks': data1['tasks']
                     }
                 }
-                users.update_one({'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}, update_date)
+                users.update_one({'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day},
+                                 update_date)
             else:
-                document = {'user_id': user_id, 'tasks': data1['tasks'], 'year': today.year, 'month': today.month,'day': today.day}
+                document = {'user_id': user_id, 'tasks': data1['tasks'], 'year': today.year, 'month': today.month,
+                            'day': today.day}
                 todo.insert_one(document)
         return jsonify('success')
     except jwt.ExpiredSignatureError:
@@ -133,20 +161,19 @@ def add():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
+
 @app.route('/home/todo/df', methods=['POST'])
 def delete():
     try:
         token = request.headers.get('Authorization').split("Bearer ")[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = data["user_id"]
-        print(user_id)
         todo = mongo.db.todo
         data1 = request.get_json()
-        print(data1)
         today = datetime.datetime.now()
         if user_id:
             users = mongo.db.todo
-            quire = {'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}
+            quire = {'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day}
             user = users.find_one(quire)
             if user:
                 update_date = {
@@ -154,13 +181,13 @@ def delete():
                         'tasks': data1['tasks']
                     }
                 }
-                users.update_one({'user_id': user_id,'year': today.year, 'month': today.month,'day': today.day}, update_date)
+                users.update_one({'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day},
+                                 update_date)
         return jsonify('success')
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-
 
 
 @app.route('/userinfo', methods=['POST'])
@@ -224,7 +251,7 @@ def ocr():
                 "without_predicting_direction": False,  # 是否关闭文字行方向预测
             }
         }
-        result=OCR.reqs(appcode, img_file, params)
+        result = OCR.reqs(appcode, img_file, params)
         return jsonify(result)
 
 
