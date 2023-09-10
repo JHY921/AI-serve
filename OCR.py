@@ -57,8 +57,13 @@ def reqs(appcode, img_file, params):
     # print(response['ret'][0]['word'])
     # re = response['ret']
     # print(len(response['ret']))
+
+    # 存储识别结果的列表
+    recognition_results = []
     for key in range(len(response['ret'])):
-        print(response['ret'][key]['word'], end="")
+        word = response['ret'][key]['word']
+        recognition_results.append(word)
+    return recognition_results
 
 
 # 请求接口
@@ -79,4 +84,5 @@ if __name__ == "__main__":
         }
     }
 
-    reqs(appcode, img_file, params)
+    results = reqs(appcode, img_file, params)
+    print(results)  # 打印识别结果

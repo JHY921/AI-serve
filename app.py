@@ -224,8 +224,8 @@ def ocr():
                 "without_predicting_direction": False,  # 是否关闭文字行方向预测
             }
         }
-        OCR.reqs(appcode, img_file, params)
-        return jsonify({'message': 'File uploaded successfully'})
+        result=OCR.reqs(appcode, img_file, params)
+        return jsonify(result)
 
 
 @app.route('/forum/post', methods=['POST'])
