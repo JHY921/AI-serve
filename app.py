@@ -81,8 +81,7 @@ def process():
         a.append(-1)
     return jsonify(a)
 
-
-@app.route('/home/todo', methods=['GET'])
+@app.route('/home/todo',methods=['GET'])
 def todo():
     try:
         token = request.headers.get('Authorization').split("Bearer ")[1]
@@ -102,8 +101,7 @@ def todo():
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-
-@app.route('/home/todo/add', methods=['POST'])
+@app.route('/home/todo/add',methods=['POST'])
 def add():
     try:
         token = request.headers.get('Authorization').split("Bearer ")[1]
@@ -111,20 +109,15 @@ def add():
         user_id = data["user_id"]
         print(user_id)
         todo = mongo.db.todo
-        data1 = request.get_json()
+        data1= request.get_json()
         print(data1)
-        document = {'user_id': user_id, 'tasks': data1}
+        document = {'user_id': user_id, 'tasks':data1}
         if user_id:
             users = mongo.db.todo
             quire = {'user_id': user_id}
             user = users.find_one(quire)
             if user:
-                update_date = {
-                    '$set': {
-                        'tasks': data1
-                    }
-                }
-                user.update_one({'user_id': user_id}, update_date)
+                user.update_one({'tasks':data1})
             else:
                 todo.insert_one(document)
         return jsonify('success')
@@ -132,7 +125,6 @@ def add():
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
         return jsonify({'message': str(e)}), 500
-
 
 @app.route('/userinfo', methods=['POST'])
 def userinfo():
