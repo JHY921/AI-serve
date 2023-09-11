@@ -9,6 +9,7 @@ import datetime
 import random
 import OCR
 from decimal import Decimal
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:*", supports_credentials=True)
@@ -80,7 +81,6 @@ def every_todo():
         token = request.headers.get('Authorization').split("Bearer ")[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = data["user_id"]
-        print(user_id)
         todos = mongo.db.todo
         today = datetime.datetime.now()
         results = todos.find(
@@ -101,8 +101,8 @@ def every_todo():
                     if m[6]:
                         time1 += time
                         already_do += 1
-                result['plan_time'] = float(Decimal(time2/60).quantize(Decimal('0.00')))
-                result['true_time'] = float(Decimal(time1/60).quantize(Decimal('0.00')))
+                result['plan_time'] = float(Decimal(time2 / 60).quantize(Decimal('0.00')))
+                result['true_time'] = float(Decimal(time1 / 60).quantize(Decimal('0.00')))
                 result['true_do'] = already_do
                 print(result)
                 work.append(result)
@@ -284,12 +284,13 @@ def post():
         tag = date.get('tag')
         passage = date.get('passage')
         img = date.get('img')
-        print(img)
+        today = datetime.datetime.now()
+        time = str(today.year)+'-'+str(today.month)+'-'+str(today.day)
         image_data = None
         if img is not None:
             image_data = base64.b64decode(img)
         document = {'user_id': user_id, 'title': title, 'tag': tag, 'passage': passage, 'through': 0,
-                    'like': 0, 'comment': 0, 'star': 0}
+                    'like': 0, 'comment': 0, 'star': 0, 'time': time}
         if image_data:
             document['img'] = image_data
         post.insert_one(document)
@@ -311,9 +312,23 @@ def heat():
         user_id = result['user_id']
         name = user.find_one({'user_id': user_id})['name']
         result['name'] = name
-        print(result)
     # print(results)
     return jsonify(results)
+
+
+@app.route('/postcontent', methods=['POST'])
+def post_content():
+    data = request.get_json()
+    pg = data.get('pgId')
+    post = mongo.db.post
+    result = post.find_one({'_id': ObjectId(pg)})
+    user = mongo.db.users
+    user_id = result['user_id']
+    name = user.find_one({'user_id': user_id})['name']
+    print(result)
+    return jsonify({'title': result['title'], 'tag': result['tag'], 'description': result['passage'],
+                    'pageView': result['through'], 'like': result['like'], 'follow':result['comment'],
+                    'subscribe': result['star'], 'image':None, 'name': name})
 
 
 @app.route('/Person', methods=['GET'])
@@ -322,7 +337,6 @@ def person():
         token = request.headers.get('Authorization').split("Bearer ")[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = data["user_id"]
-        print('user_id', user_id)
         if user_id:
             users = mongo.db.users
             quire = {'user_id': user_id}
