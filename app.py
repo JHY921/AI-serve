@@ -206,7 +206,7 @@ def delete():
         return jsonify({'message': str(e)}), 500
 
 
-@app.route('/userinfo', methods=['POST'])
+@app.route('/userinfouserinfo', methods=['POST'])
 def userinfo():
     data = request.get_json()
     name = data.get('name')
@@ -330,7 +330,7 @@ def person():
             if user:
                 return jsonify(
                     {'name': user['name'], 'account': user['account'], 'fans': user['fans'], 'post': user['posts'],
-                     'follows': user['follows']})
+                     'follows': user['follows'],'sex':user['sex'],'birtn':user['birth'],'degree':user['degree']})
         return jsonify({'message': 'User not found'})
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
