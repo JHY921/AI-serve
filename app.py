@@ -1,6 +1,6 @@
 import base64
 import os
-from flask import Flask, request, jsonify, session, send_from_directory
+from flask import Flask, request, jsonify, session, send_from_directory, send_file
 from flask_cors import CORS
 from flask_pymongo import PyMongo
 import uuid
@@ -33,6 +33,9 @@ UPLOAD_FOLDER = 'uploads'  # 设置上传文件夹
 
 if not os.path.exists(UPLOAD_FOLDER):
      os.makedirs(UPLOAD_FOLDER)
+
+if not os.path.exists('portrait'):
+     os.makedirs('portrait')
 
 text =[]
 
@@ -82,6 +85,16 @@ def img():
 def video(filename):
     return send_from_directory('./video', filename)
 
+@app.route('/portrait', methods=['GET'])
+def image():
+    token = request.headers.get('Authorization').split("Bearer ")[1]
+    data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    user_id = data["user_id"]
+    print(user_id)
+    users=mongo.db.users
+    quire = {'user_id': user_id}
+    user = users.find_one(quire)
+    return send_from_directory('/portrait',user['image'])
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -283,15 +296,19 @@ def changeimg():
     if file == '':
         return jsonify({'err': '请选择图片'})
     if file:
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        filepath = os.path.join('portrait', file.filename)
         file.save(filepath)
-        img_file = './portarit/' + file.filename
+        img_file = file.filename
         users = mongo.db.user
-        quire = {'user_id':user_id }
-        user = users.find_one(quire)
-        user['image']=img_file
+        update_date = {
+            '$set': {
+                'image': img_file
+            }
+        }
+        users.update_one({'user_id': user_id},
+                         update_date)
         print(img_file)
-        return jsonify(user['image'])
+        return 'success'
 
 @app.route('/question', methods=['POST'])
 def question():
