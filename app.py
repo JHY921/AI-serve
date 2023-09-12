@@ -112,7 +112,8 @@ def register():
     password = data.get('password')
     user_id = str(uuid.uuid4())
     user = mongo.db.users
-    new_users = {"account": account, 'password': password, 'user_id': user_id}
+    url='https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
+    new_users = {"account": account, 'password': password, 'user_id': user_id,'image':url}
     user.insert_one(new_users)
     return jsonify(user_id)
 
@@ -271,6 +272,26 @@ def userinfo():
     result = users.update_one({'user_id': user_id}, update_data)
     return jsonify('success')
 
+@app.route('/changeimg', methods=['POST'])
+def changeimg():
+    token = request.headers.get('Authorization').split("Bearer ")[1]
+    data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    user_id = data["user_id"]
+    if 'image' not in request.files:
+        return jsonify({'err': '请上传图片'})
+    file = request.files['image']
+    if file == '':
+        return jsonify({'err': '请选择图片'})
+    if file:
+        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(filepath)
+        img_file = './portarit/' + file.filename
+        users = mongo.db.user
+        quire = {'user_id':user_id }
+        user = users.find_one(quire)
+        user['image']=img_file
+        print(img_file)
+        return jsonify(user['image'])
 
 @app.route('/question', methods=['POST'])
 def question():
@@ -386,7 +407,7 @@ def person():
             if user:
                 return jsonify(
                     {'name': user['name'], 'account': user['account'], 'fans': user['fans'], 'post': user['posts'],
-                     'follows': user['follows']})
+                     'follows': user['follows'],'image':user['image'],'userId':user['user_id'],'sex':user['sex'],'birth':user['birth'],'degree':user['degree']})
         return jsonify({'message': 'User not found'})
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
