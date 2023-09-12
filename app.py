@@ -35,6 +35,9 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 text = []
+fans_score = 1
+todo_score = 5
+post_score = 2
 
 
 def getText(role, content):
@@ -119,10 +122,51 @@ def register():
     password = data.get('password')
     user_id = str(uuid.uuid4())
     user = mongo.db.users
-    url='https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
-    new_users = {"account": account, 'password': password, 'user_id': user_id,'image':url}
+    url = 'https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg'
+    new_users = {"account": account, 'password': password, 'user_id': user_id, 'image': url}
     user.insert_one(new_users)
     return jsonify(user_id)
+
+
+@app.route('/ballstage', methods=['GET'])
+def ball_stage():
+    try:
+        token = request.headers.get('Authorization').split('Bearer ')[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        user_id = data['user_id']
+        print(user_id)
+        user = mongo.db.users
+        post = mongo.db.post
+        todo = mongo.db.todo
+        score = mongo.db.score
+        sco = score.find_one({'user_id': user_id})
+        fans_n = user.find_one({'user_id': user_id})['fans']
+        post_n = post.count_documents({'user_id': user_id})
+        todo_n = todo.find({'user_id': user_id})
+        score1 = fans_n * fans_score
+        score2 = post_n * post_score
+        score3 = 0
+        for t_n in todo_n:
+            score3 += t_n['progress']
+        print(score1, score2, score3)
+        if not sco:
+            score.insert_one({'user_id': user_id, 'fans_score': score1, 'post_score': score2,
+                              'todo_score': score3, 'total': score1 + score2 + score3})
+        else:
+            update_date = {
+                '$set': {
+                    'fans_score': score1,
+                    'post_score': score2,
+                    'todo_score': score3,
+                    'total': score1 + score2 + score3
+                }
+            }
+            score.update_one({'user_id': user_id}, update_date)
+        return jsonify('success')
+    except jwt.ExpiredSignatureError:
+        return jsonify({'message': 'Token has expired, please login again.'}), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 
 @app.route('/dailytodo', methods=['GET'])
@@ -138,9 +182,6 @@ def every_todo():
         work = []
         if results:
             for result in results:
-                del result['_id']
-                del result['user_id']
-                del result['year']
                 t = result['tasks']
                 time1 = 0
                 time2 = 0
@@ -154,6 +195,15 @@ def every_todo():
                 result['plan_time'] = float(Decimal(time2 / 60).quantize(Decimal('0.00')))
                 result['true_time'] = float(Decimal(time1 / 60).quantize(Decimal('0.00')))
                 result['true_do'] = already_do
+                # update_date = {
+                #     '$set': {
+                #         'progress': already_do/len(t)
+                #     }
+                # }
+                # todos.update_one({'_id':result['_id']}, update_date)
+                del result['_id']
+                del result['user_id']
+                del result['year']
                 print(result)
                 work.append(result)
             # print(work)
@@ -210,16 +260,21 @@ def add():
             quire = {'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day}
             user = users.find_one(quire)
             if user:
+                t = data1['tasks']
+                already_do = 0
+                for m in t:
+                    already_do += m[6]
                 update_date = {
                     '$set': {
-                        'tasks': data1['tasks']
+                        'tasks': data1['tasks'],
+                        'progress': already_do / len(data1['tasks']) * todo_score
                     }
                 }
                 users.update_one({'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day},
                                  update_date)
             else:
                 document = {'user_id': user_id, 'tasks': data1['tasks'], 'year': today.year, 'month': today.month,
-                            'day': today.day}
+                            'day': today.day, 'progress': 0}
                 todo.insert_one(document)
         return jsonify('success')
     except jwt.ExpiredSignatureError:
@@ -242,9 +297,14 @@ def delete():
             quire = {'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day}
             user = users.find_one(quire)
             if user:
+                t = data1['tasks']
+                already_do = 0
+                for m in t:
+                    already_do += m[6]
                 update_date = {
                     '$set': {
-                        'tasks': data1['tasks']
+                        'tasks': data1['tasks'],
+                        'progress': already_do / len(data1['tasks']) * todo_score
                     }
                 }
                 users.update_one({'user_id': user_id, 'year': today.year, 'month': today.month, 'day': today.day},
@@ -279,6 +339,7 @@ def userinfo():
     result = users.update_one({'user_id': user_id}, update_data)
     return jsonify('success')
 
+
 @app.route('/changeimg', methods=['POST'])
 def changeimg():
     token = request.headers.get('Authorization').split("Bearer ")[1]
@@ -294,11 +355,12 @@ def changeimg():
         file.save(filepath)
         img_file = './portarit/' + file.filename
         users = mongo.db.user
-        quire = {'user_id':user_id }
+        quire = {'user_id': user_id}
         user = users.find_one(quire)
-        user['image']=img_file
+        user['image'] = img_file
         print(img_file)
         return jsonify(user['image'])
+
 
 @app.route('/question', methods=['POST'])
 def question():
@@ -414,7 +476,8 @@ def person():
             if user:
                 return jsonify(
                     {'name': user['name'], 'account': user['account'], 'fans': user['fans'], 'post': user['posts'],
-                     'follows': user['follows'],'image':user['image'],'userId':user['user_id'],'sex':user['sex'],'birth':user['birth'],'degree':user['degree']})
+                     'follows': user['follows'], 'image': user['image'], 'userId': user['user_id'], 'sex': user['sex'],
+                     'birth': user['birth'], 'degree': user['degree']})
         return jsonify({'message': 'User not found'})
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
