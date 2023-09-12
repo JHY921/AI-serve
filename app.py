@@ -12,14 +12,14 @@ from decimal import Decimal
 from bson.objectid import ObjectId
 import SparkApi
 
-appid = "0f853b71"     #填写控制台中获取的 APPID 信息
-api_secret = "MmZjZjFhMjEyZDQ5NDBhMDY4MmNjN2Uz"   #填写控制台中获取的 APISecret 信息
-api_key ="2578758349fb1df97b02bbcc9f896d53"    #填写控制台中获取的 APIKey 信息
+appid = "0f853b71"  # 填写控制台中获取的 APPID 信息
+api_secret = "MmZjZjFhMjEyZDQ5NDBhMDY4MmNjN2Uz"  # 填写控制台中获取的 APISecret 信息
+api_key = "2578758349fb1df97b02bbcc9f896d53"  # 填写控制台中获取的 APIKey 信息
 
-#用于配置大模型版本，默认“general/generalv2”
-domain = "general"   # v1.5版本
+# 用于配置大模型版本，默认“general/generalv2”
+domain = "general"  # v1.5版本
 # domain = "generalv2"    # v2.0版本
-#云端环境的服务地址
+# 云端环境的服务地址
 Spark_url = "ws://spark-api.xf-yun.com/v1.1/chat"  # v1.5环境的地址
 # Spark_url = "ws://spark-api.xf-yun.com/v2.1/chat"  # v2.0环境的地址
 
@@ -32,16 +32,19 @@ mongo = PyMongo(app)
 UPLOAD_FOLDER = 'uploads'  # 设置上传文件夹
 
 if not os.path.exists(UPLOAD_FOLDER):
-     os.makedirs(UPLOAD_FOLDER)
+    os.makedirs(UPLOAD_FOLDER)
 
-text =[]
+text = []
 
-def getText(role,content):
+
+def getText(role, content):
     jsoncon = {}
     jsoncon["role"] = role
     jsoncon["content"] = content
     text.append(jsoncon)
     return text
+
+
 def getlength(text):
     length = 0
     for content in text:
@@ -49,21 +52,25 @@ def getlength(text):
         leng = len(temp)
         length += leng
     return length
+
+
 def checklen(text):
     while (getlength(text) > 8000):
         del text[0]
     return text
 
-@app.route('/Spark',methods=['POST'])
+
+@app.route('/Spark', methods=['POST'])
 def Spark():
     text.clear
     data = request.get_json()
-    Input =data.get('question')
-    question = checklen(getText("user",Input))
-    SparkApi.answer =""
-    SparkApi.main(appid,api_key,api_secret,Spark_url,domain,question)
-    getText("assistant",SparkApi.answer)
-    return jsonify({'answer':SparkApi.answer})
+    Input = data.get('question')
+    question = checklen(getText("user", Input))
+    SparkApi.answer = ""
+    SparkApi.main(appid, api_key, api_secret, Spark_url, domain, question)
+    getText("assistant", SparkApi.answer)
+    return jsonify({'answer': SparkApi.answer})
+
 
 @app.route('/image', methods=['GET'])
 def img():
@@ -327,7 +334,7 @@ def post():
         passage = date.get('passage')
         img = date.get('img')
         today = datetime.datetime.now()
-        time = str(today.year)+'-'+str(today.month)+'-'+str(today.day)
+        time = str(today.year) + '-' + str(today.month) + '-' + str(today.day)
         image_data = None
         if img is not None:
             image_data = base64.b64decode(img)
@@ -369,8 +376,8 @@ def post_content():
     name = user.find_one({'user_id': user_id})['name']
     print(result)
     return jsonify({'title': result['title'], 'tag': result['tag'], 'description': result['passage'],
-                    'pageView': result['through'], 'like': result['like'], 'follow':result['comment'],
-                    'subscribe': result['star'], 'image':None, 'name': name})
+                    'pageView': result['through'], 'like': result['like'], 'follow': result['comment'],
+                    'subscribe': result['star'], 'image': None, 'name': name})
 
 
 @app.route('/Person', methods=['GET'])
