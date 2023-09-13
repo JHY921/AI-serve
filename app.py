@@ -372,22 +372,23 @@ def changeimg():
     file = request.files['image']
     if file == '':
         return jsonify({'err': '请选择图片'})
+    path = './portrait/'+user_id
     if file:
-        filepath = os.path.join('portrait', file.filename)
+        if os.path.exists(path):
+            os.remove('./portrait/'+user_id)
+        filepath = os.path.join('portrait', user_id)
         file.save(filepath)
-        img_file = 'http://127.0.0.1:5000/img/'+file.filename
-        users = mongo.db.user
-        quire = {'user_id': user_id}
-        user = users.find_one(quire)
+        img_file = 'http://127.0.0.1:5000/img/' + user_id
+        user = mongo.db.users
         update_date = {
             '$set': {
                 'image': img_file
             }
         }
-        users.update_one({'user_id': user_id},
+        user.update_one({'user_id': user_id},
                          update_date)
         print(img_file)
-        return jsonify('success')
+        return jsonify(img_file)
 
 
 @app.route('/question', methods=['POST'])
@@ -484,11 +485,13 @@ def post_content():
     result = post.find_one({'_id': ObjectId(pg)})
     user = mongo.db.users
     user_id = result['user_id']
-    name = user.find_one({'user_id': user_id})['name']
+    us = user.find_one({'user_id': user_id})
+    name = us['name']
+    img = us['image']
     print(result)
     return jsonify({'title': result['title'], 'tag': result['tag'], 'description': result['passage'],
                     'pageView': result['through'], 'like': result['like'], 'follow': result['comment'],
-                    'subscribe': result['star'], 'image': None, 'name': name})
+                    'subscribe': result['star'], 'image': None, 'name': name, 'img': img, 'time':result['time']})
 
 
 @app.route('/Person', methods=['GET'])
