@@ -38,6 +38,7 @@ text = []
 fans_score = 1
 todo_score = 5
 post_score = 2
+stage = 10000
 if not os.path.exists('portrait'):
     os.makedirs('portrait')
 
@@ -185,7 +186,7 @@ def ball_stage():
             }
             score.update_one({'user_id': user_id}, update_date)
         total = score1 + score2 + score3
-        return jsonify(round(total/10000)+1)
+        return jsonify(round(total / stage) + 1)
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
@@ -240,6 +241,31 @@ def every_todo():
         return jsonify({'message': str(e)}), 500
 
 
+@app.route('/userChat', methods=['GET'])
+def user_Chat():
+    try:
+        token = request.headers.get('Authorization').split('Bearer ')[1]
+        data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        user_id = data['user_id']
+        score = mongo.db.score
+        user_score = score.find_one({'user_id': user_id})['total']
+        # 当前阶段的进度
+        progress = (user_score - (user_score // stage) * stage)/stage
+        todos = mongo.db.todo
+        # 记录前六天的数据
+        things = []
+        today = datetime.datetime.now()
+        results = todos.find({'user_id': user_id, 'month': {'$lte': today.month}, 'day': {'$lte': today.day}}).limit(6)
+        for result in results:
+            dict = {'time': result['month']+result['day'], 'do': result['already_do']}
+            things.append(dict)
+        return jsonify({'progress': progress, 'every_num':things})
+    except jwt.ExpiredSignatureError:
+        return jsonify(({'message': 'Token has expired, please login again.'})), 401
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
 @app.route('/home/process', methods=['GET'])
 def process():
     a = [random.random() for _ in range(6)]
@@ -290,6 +316,7 @@ def add():
                 update_date = {
                     '$set': {
                         'tasks': data1['tasks'],
+                        'already_do':already_do,
                         'progress': already_do / len(data1['tasks']) * todo_score
                     }
                 }
@@ -327,6 +354,7 @@ def delete():
                 update_date = {
                     '$set': {
                         'tasks': data1['tasks'],
+                        'already_do': already_do,
                         'progress': already_do / len(data1['tasks']) * todo_score
                     }
                 }
