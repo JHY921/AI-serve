@@ -1,4 +1,7 @@
-
-Flask==2.2.2
+aliyun_python_sdk_core==2.13.36
 Flask_Cors==3.0.10
 Flask_PyMongo==2.3.0
+pydub==0.25.1
+PyJWT==2.8.0
+pymongo==4.4.1
+websocket_client==0.58.0

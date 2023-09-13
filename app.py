@@ -185,7 +185,7 @@ def ball_stage():
             }
             score.update_one({'user_id': user_id}, update_date)
         total = score1 + score2 + score3
-        return jsonify(total/10000+1)
+        return jsonify(round(total/10000)+1)
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
