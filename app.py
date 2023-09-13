@@ -184,7 +184,8 @@ def ball_stage():
                 }
             }
             score.update_one({'user_id': user_id}, update_date)
-        return jsonify('success')
+        total = score1 + score2 + score3
+        return jsonify(total/10000+1)
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
     except Exception as e:
@@ -372,10 +373,10 @@ def changeimg():
     file = request.files['image']
     if file == '':
         return jsonify({'err': '请选择图片'})
-    path = './portrait/'+user_id
+    path = './portrait/' + user_id
     if file:
         if os.path.exists(path):
-            os.remove('./portrait/'+user_id)
+            os.remove('./portrait/' + user_id)
         filepath = os.path.join('portrait', user_id)
         file.save(filepath)
         img_file = 'http://127.0.0.1:5000/img/' + user_id
@@ -386,7 +387,7 @@ def changeimg():
             }
         }
         user.update_one({'user_id': user_id},
-                         update_date)
+                        update_date)
         print(img_file)
         return jsonify(img_file)
 
@@ -491,7 +492,7 @@ def post_content():
     print(result)
     return jsonify({'title': result['title'], 'tag': result['tag'], 'description': result['passage'],
                     'pageView': result['through'], 'like': result['like'], 'follow': result['comment'],
-                    'subscribe': result['star'], 'image': None, 'name': name, 'img': img, 'time':result['time']})
+                    'subscribe': result['star'], 'image': None, 'name': name, 'img': img, 'time': result['time']})
 
 
 @app.route('/Person', methods=['GET'])
