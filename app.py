@@ -38,7 +38,7 @@ text = []
 fans_score = 1
 todo_score = 5
 post_score = 2
-stage = 10000
+stage = 1000
 if not os.path.exists('portrait'):
     os.makedirs('portrait')
 
@@ -534,10 +534,15 @@ def person():
             quire = {'user_id': user_id}
             user = users.find_one(quire)
             if user:
+                score = mongo.db.score
+                total = score.find_one({'user_id': user_id})['total']
+                empiricalValue = total - total//stage
+                percent = (1-(empiricalValue/stage+total//stage)/6)*100
                 return jsonify(
                     {'name': user['name'], 'account': user['account'], 'fans': user['fans'], 'post': user['posts'],
                      'follows': user['follows'], 'image': user['image'], 'userId': user['user_id'], 'sex': user['sex'],
-                     'birth': user['birth'], 'degree': user['degree']})
+                     'birth': user['birth'], 'degree': user['degree'], 'totalEmpir': stage,
+                     'empiricalValue': empiricalValue, 'percent': percent})
         return jsonify({'message': 'User not found'})
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
