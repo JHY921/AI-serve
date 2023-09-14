@@ -85,7 +85,6 @@ def img():
     userId = '2f3c5b31-0bb9-4c50-a09b-e961baeeccca'
     post = mongo.db.post
     img_date = post.find_one({'user_id': userId})
-    print(img_date)
     if img_date:
         image = img_date['img']
         image_base64 = base64.b64encode(image).decode('utf-8')
@@ -108,7 +107,6 @@ def image():
     token = request.headers.get('Authorization').split("Bearer ")[1]
     data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     user_id = data["user_id"]
-    print(user_id)
     users = mongo.db.users
     quire = {'user_id': user_id}
     user = users.find_one(quire)
@@ -157,7 +155,6 @@ def ball_stage():
         token = request.headers.get('Authorization').split('Bearer ')[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user_id = data['user_id']
-        print(user_id)
         user = mongo.db.users
         post = mongo.db.post
         todo = mongo.db.todo
@@ -171,7 +168,6 @@ def ball_stage():
         score3 = 0
         for t_n in todo_n:
             score3 += t_n['progress']
-        print(score1, score2, score3)
         if not sco:
             score.insert_one({'user_id': user_id, 'fans_score': score1, 'post_score': score2,
                               'todo_score': score3, 'total': score1 + score2 + score3})
@@ -228,7 +224,6 @@ def every_todo():
                 del result['_id']
                 del result['user_id']
                 del result['year']
-                print(result)
                 work.append(result)
             # print(work)
             return jsonify(work)
@@ -247,18 +242,23 @@ def user_Chat():
         token = request.headers.get('Authorization').split('Bearer ')[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user_id = data['user_id']
+        print(user_id)
         score = mongo.db.score
         user_score = score.find_one({'user_id': user_id})['total']
+        print(user_score)
         # 当前阶段的进度
         progress = (user_score - (user_score // stage) * stage)/stage
         todos = mongo.db.todo
         # 记录前六天的数据
         things = []
         today = datetime.datetime.now()
-        results = todos.find({'user_id': user_id, 'month': {'$lte': today.month}, 'day': {'$lte': today.day}}).limit(6)
+        results = todos.find({'user_id': user_id})
         for result in results:
-            dict = {'time': result['month']+result['day'], 'do': result['already_do']}
+            print(result)
+            dict = {'time': str( result['month'])+'-'+str(result['day']), 'do': result['already_do']}
+            print(dict)
             things.append(dict)
+        print(things)
         return jsonify({'progress': progress, 'every_num':things})
     except jwt.ExpiredSignatureError:
         return jsonify(({'message': 'Token has expired, please login again.'})), 401
@@ -416,7 +416,6 @@ def changeimg():
         }
         user.update_one({'user_id': user_id},
                         update_date)
-        print(img_file)
         return jsonify(img_file)
 
 
@@ -467,7 +466,6 @@ def post():
         token = request.headers.get('Authorization').split("Bearer ")[1]
         data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         user_id = data["user_id"]
-        print(user_id)
         post = mongo.db.post
         date = request.get_json()
         title = date.get('title')
@@ -484,7 +482,6 @@ def post():
         if image_data:
             document['img'] = image_data
         post.insert_one(document)
-        print(tag)
         return jsonify('success')
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired, please login again.'}), 401
@@ -502,7 +499,6 @@ def heat():
         user_id = result['user_id']
         name = user.find_one({'user_id': user_id})['name']
         result['name'] = name
-    # print(results)
     return jsonify(results)
 
 
@@ -517,7 +513,6 @@ def post_content():
     us = user.find_one({'user_id': user_id})
     name = us['name']
     img = us['image']
-    print(result)
     return jsonify({'title': result['title'], 'tag': result['tag'], 'description': result['passage'],
                     'pageView': result['through'], 'like': result['like'], 'follow': result['comment'],
                     'subscribe': result['star'], 'image': None, 'name': name, 'img': img, 'time': result['time']})
